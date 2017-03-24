@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<module>
+  <id>plesk-cloud-providers</id>
+  <name>Plesk Cloud Providers development tools</name>
+  <description>Provisioning of Plesk Multi Server accounts to cloud VPS providers</description>
+  <category>server_tool</category>
+  <version>1.0.0</version>
+  <release>{{RELEASE}}</release>
+  <vendor>Plesk</vendor>
+  <url>http://plesk.com</url>
+  <plesk_min_version>17.0</plesk_min_version>
+</module>
