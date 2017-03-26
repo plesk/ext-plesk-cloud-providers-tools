@@ -9,10 +9,12 @@ class Dump
      * @var array
      */
     public $ipv4 = [];
+
     /**
      * @var array
      */
     public $ipv6 = [];
+
     /**
      * @var string
      */

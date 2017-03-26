@@ -81,6 +81,12 @@ class IndexController extends pm_Controller_Action
         try {
             $nodes = $this->_getNodesFromStorage();
             $nodesToRemove = (array)$this->_getParam('ids');
+            foreach ($nodes as $node) {
+                if (in_array($node, $nodesToRemove)) {
+                    $deployer = new VpsDeployer();
+                    $nodeInfo = $deployer->destroyNode($node);
+                }
+            }
             $nodes = array_diff($nodes, $nodesToRemove);
             $this->_saveNodesToStorage($nodes);
             $this->_helper->json(['status' => 'success', 'statusMessages' => [

@@ -47,6 +47,7 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
 
         $provider->prepareDump($dumpId, $additionalInfo);
         $dump = $provider->getDumpInfo($dumpId);
+        \pm_Settings::set('dump-' . reset($dump->ipv4), $dumpId);
 
         $nodeInfo = new NodeInfo(null, $dump->ipv4, $dump->ipv6);
         $nodeInfo->setPassword($dump->password);
@@ -58,16 +59,13 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
      */
     public function destroyNode($ipAddress)
     {
+        $dumpId = \pm_Settings::get('dump-' . $ipAddress);
+
         // TODO: find provider
         $providers = ProviderFactory::getProviders();
         $provider = reset($providers);
-        $dump = new Dump();
-        if (false !== strpos($ipAddress, ':')) {
-            $dump->ipv6 = [$ipAddress];
-        } else {
-            $dump->ipv4 = [$ipAddress];
-        }
-        $provider->destroyDump($dump);
+        $provider->destroyDump($dumpId);
+        \pm_Settings::set('dump-' . $ipAddress, null);
     }
 
     private function _getAdminInfo($subscriptionId)

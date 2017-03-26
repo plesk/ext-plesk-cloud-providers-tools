@@ -31,7 +31,7 @@ interface VpsProviderInterface
     public function getDumpInfo($dumpId);
 
     /**
-     * @param Dump
+     * @param string $dumpId
      */
-    public function destroyDump(Dump $dump);
+    public function destroyDump($dumpId);
 }
