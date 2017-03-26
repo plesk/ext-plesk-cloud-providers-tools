@@ -9,6 +9,8 @@ use Modules_PleskCloudProviders_Provider\ProviderFactory;
 
 class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterface
 {
+    const POLLING_INTERVAL = 20;
+    const TIMEOPUT = 600;
     /**
      * Returns deployed VPS info
      *
@@ -24,10 +26,25 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
             throw new \pm_Exception('Provider not found');
         }
 
-        /**
-         * @var Dump $dump
-         */
-        $dump = $provider->deployDump();
+        $dumpId = $provider->deployDump($subscriptionId);
+
+        \pm_Log::info("Waiting till dump {$dumpId} is deployed");
+        $attempt = 0;
+        while (true) {
+            if ($provider->isDumpDeployed($dumpId)) {
+                break;
+            }
+            $attempt++;
+            \pm_Log::debug("Dump with id '{$dumpId}' is not deployed yet. Attempt: {$attempt}. Sleep for {$timeout} sec...");
+            if ($attempt * static::POLLING_INTERVAL > static::TIMEOPUT) {
+                throw new \pm_Exception('Dumps is not deployed because of timeout');
+            }
+            sleep(static::POLLING_INTERVAL);
+        }
+
+        $provider->prepareDump($dumpId);
+        $dump = $provider->getDumpInfo($dumpId);
+
         $nodeInfo = new NodeInfo(null, $dump->ipv4, $dump->ipv6);
         $nodeInfo->setPassword($dump->password);
         return $nodeInfo;
