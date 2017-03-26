@@ -31,7 +31,7 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
             if (is_null($provider)) {
                 throw new \pm_Exception('Provider not found');
             }
-            $providerExtensionId = reset(array_keys($providerExtensionId));
+            $providerExtensionId = reset(array_keys($providers));
             \pm_Context::init($providerExtensionId);
 
             $additionalInfo = [
