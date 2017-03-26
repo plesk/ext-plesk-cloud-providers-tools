@@ -65,7 +65,7 @@ class IndexController extends pm_Controller_Action
     public function addAction()
     {
         $deployer = new VpsDeployer();
-        $nodeInfo = $deployer->deployNode();
+        $nodeInfo = $deployer->deployNode(1, 'ifgrfc1Q');
         $ip = reset($nodeInfo->getIPv4Addresses());
 
         $nodes = $this->_getNodesFromStorage();
