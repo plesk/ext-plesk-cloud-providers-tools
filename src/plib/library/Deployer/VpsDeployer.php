@@ -112,7 +112,7 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
             'state' => $client->getProperty('state'),
             'zip' => $client->getProperty('pcode'),
             'country'=> $client->getProperty('country'),
-            'password' => $this->_password,
+            'passwd' => $this->_password,
         ];
     }
 }
