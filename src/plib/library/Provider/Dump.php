@@ -6,14 +6,14 @@ namespace Modules_PleskCloudProviders_Provider;
 class Dump
 {
     /**
-     * @var array
+     * @var string
      */
-    public $ipv4 = [];
+    public $ipv4;
 
     /**
-     * @var array
+     * @var string
      */
-    public $ipv6 = [];
+    public $ipv6;
 
     /**
      * @var string

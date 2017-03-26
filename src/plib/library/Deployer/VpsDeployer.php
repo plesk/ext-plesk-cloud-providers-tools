@@ -38,7 +38,7 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
                 break;
             }
             $attempt++;
-            \pm_Log::debug("Dump with id '{$dumpId}' is not deployed yet. Attempt: {$attempt}. Sleep for {$timeout} sec...");
+            \pm_Log::debug("Dump with id '{$dumpId}' is not deployed yet. Attempt: {$attempt}. Sleep for " . static::POLLING_INTERVAL . " sec...");
             if ($attempt * static::POLLING_INTERVAL > static::TIMEOPUT) {
                 throw new \pm_Exception('Dumps is not deployed because of timeout');
             }
@@ -47,9 +47,11 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
 
         $provider->prepareDump($dumpId, $additionalInfo);
         $dump = $provider->getDumpInfo($dumpId);
-        \pm_Settings::set('dump-' . reset($dump->ipv4), $dumpId);
+        \pm_Settings::set('dump-' . $dump->ipv4, $dumpId);
 
-        $nodeInfo = new NodeInfo(null, $dump->ipv4, $dump->ipv6);
+        $ipv4 = !empty($dump->ipv4) ? [$dump->ipv4] : [];
+        $ipv6 = !empty($dump->ipv6) ? [$dump->ipv6] : [];
+        $nodeInfo = new NodeInfo(null, $ipv4, $ipv6);
         $nodeInfo->setPassword($dump->password);
         return $nodeInfo;
     }
