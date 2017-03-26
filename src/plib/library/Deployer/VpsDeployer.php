@@ -26,7 +26,10 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
             throw new \pm_Exception('Provider not found');
         }
 
-        $dumpId = $provider->deployDump($subscriptionId);
+        $additionalInfo = [
+            'admin' => $this->_getAdminInfo($subscriptionId),
+        ];
+        $dumpId = $provider->deployDump($subscriptionId, $additionalInfo);
 
         \pm_Log::info("Waiting till dump {$dumpId} is deployed");
         $attempt = 0;
@@ -42,7 +45,7 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
             sleep(static::POLLING_INTERVAL);
         }
 
-        $provider->prepareDump($dumpId);
+        $provider->prepareDump($dumpId, $additionalInfo);
         $dump = $provider->getDumpInfo($dumpId);
 
         $nodeInfo = new NodeInfo(null, $dump->ipv4, $dump->ipv6);
@@ -65,5 +68,27 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
             $dump->ipv4 = [$ipAddress];
         }
         $provider->destroyDump($dump);
+    }
+
+    private function _getAdminInfo($subscriptionId)
+    {
+        if (is_numeric($subscriptionId)) {
+            $domain = new \pm_Domain($subscriptionId);
+            $client = $domain->getClient();
+        } else {
+            $client = \pm_Client::getByLogin('admin');
+        }
+        return [
+            'company' => $client->getProperty('cname'),
+            'name' => $client->getProperty('pname'),
+            'phone' => $client->getProperty('phone'),
+            'fax'=> $client->getProperty('fax'),
+            'email' => $client->getProperty('email'),
+            'address' => $client->getProperty('address'),
+            'city' => $client->getProperty('city'),
+            'state' => $client->getProperty('state'),
+            'zip' => $client->getProperty('pcode'),
+            'country'=> $client->getProperty('country'),
+        ];
     }
 }

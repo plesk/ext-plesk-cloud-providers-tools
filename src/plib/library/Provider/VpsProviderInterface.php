@@ -7,9 +7,10 @@ interface VpsProviderInterface
 {
     /**
      * @param int $subscriptionId
+     * @param array $additionalInfo
      * @return string $dumpId
      */
-    public function deployDump($subscriptionId);
+    public function deployDump($subscriptionId, $additionalInfo);
 
     /**
      * @param string $dumpId
@@ -19,8 +20,9 @@ interface VpsProviderInterface
 
     /**
      * @param string $dumpId
+     * @param array $additionalInfo
      */
-    public function prepareDump($dumpId);
+    public function prepareDump($dumpId, $additionalInfo);
 
     /**
      * @param string $dumpId
