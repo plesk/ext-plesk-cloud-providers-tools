@@ -22,58 +22,62 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
      */
     public function deployNode($subscriptionId, $password)
     {
-        $this->_password = $password;
-        $dumpId = \pm_Settings::get("subscription-{$subscriptionId}");
-        if ($dumpId) {
-            $info = json_decode(\pm_Settings::get("dump-{$dumpId}-info"), true);
-            $ipv4 = !empty($info['ipv4']) ? [$info['ipv4']] : [];
-            $ipv6 = !empty($info['ipv6']) ? [$info['ipv6']] : [];
+        try {
+            $this->_password = $password;
+            $dumpId = \pm_Settings::get("subscription-{$subscriptionId}");
 
+            $providers = ProviderFactory::getProviders();
+            $provider = reset($providers);
+            if (is_null($provider)) {
+                throw new \pm_Exception('Provider not found');
+            }
+            $providerExtensionId = reset(array_keys($providerExtensionId));
+            \pm_Context::init($providerExtensionId);
+
+            $additionalInfo = [
+                'admin' => $this->_getAdminInfo($subscriptionId),
+            ];
+            if (!$dumpId) {
+                $dumpId = $provider->deployDump($subscriptionId, $additionalInfo);
+            }
+
+            \pm_Log::info("Waiting till dump {$dumpId} is deployed");
+            $attempt = 0;
+            while (true) {
+                if ($provider->isDumpDeployed($dumpId)) {
+                    break;
+                }
+                $attempt++;
+                \pm_Log::debug("Dump with id '{$dumpId}' is not deployed yet. Attempt: {$attempt}. Sleep for " . static::POLLING_INTERVAL . " sec...");
+                if ($attempt * static::POLLING_INTERVAL > static::TIMEOPUT) {
+                    throw new \pm_Exception('Dumps is not deployed because of timeout');
+                }
+                sleep(static::POLLING_INTERVAL);
+            }
+
+            $provider->prepareDump($dumpId, $additionalInfo);
+            $dump = $provider->getDumpInfo($dumpId);
+            \pm_Settings::set("dump-{$dump->ipv4}", $dumpId);
+            \pm_Settings::set("subscription-{$subscriptionId}", $dumpId);
+            \pm_Settings::set("dump-{$dumpId}-info", json_encode([
+                'ipv4' => $dump->ipv4,
+                'ipv6' => $dump->ipv6,
+                'password' => $dump->password,
+                'subscription' => $subscriptionId,
+            ]));
+
+            $ipv4 = !empty($dump->ipv4) ? [$dump->ipv4] : [];
+            $ipv6 = !empty($dump->ipv6) ? [$dump->ipv6] : [];
             $nodeInfo = new NodeInfo(null, $ipv4, $ipv6);
-            $nodeInfo->setPassword($info['password']);
+            $nodeInfo->setPassword($dump->password);
+
+            \pm_Context::init('plesk-multi-server');
+
             return $nodeInfo;
+        } catch (\Exception $e) {
+            \pm_Context::init('plesk-multi-server');
+            throw $e;
         }
-        $providers = ProviderFactory::getProviders();
-        $provider = reset($providers);
-        if (is_null($provider)) {
-            throw new \pm_Exception('Provider not found');
-        }
-
-        $additionalInfo = [
-            'admin' => $this->_getAdminInfo($subscriptionId),
-        ];
-        $dumpId = $provider->deployDump($subscriptionId, $additionalInfo);
-
-        \pm_Log::info("Waiting till dump {$dumpId} is deployed");
-        $attempt = 0;
-        while (true) {
-            if ($provider->isDumpDeployed($dumpId)) {
-                break;
-            }
-            $attempt++;
-            \pm_Log::debug("Dump with id '{$dumpId}' is not deployed yet. Attempt: {$attempt}. Sleep for " . static::POLLING_INTERVAL . " sec...");
-            if ($attempt * static::POLLING_INTERVAL > static::TIMEOPUT) {
-                throw new \pm_Exception('Dumps is not deployed because of timeout');
-            }
-            sleep(static::POLLING_INTERVAL);
-        }
-
-        $provider->prepareDump($dumpId, $additionalInfo);
-        $dump = $provider->getDumpInfo($dumpId);
-        \pm_Settings::set("dump-{$dump->ipv4}", $dumpId);
-        \pm_Settings::set("subscription-{$subscriptionId}", $dumpId);
-        \pm_Settings::set("dump-{$dumpId}-info", json_encode([
-            'ipv4' => $dump->ipv4,
-            'ipv6' => $dump->ipv6,
-            'password' => $dump->password,
-            'subscription' => $subscriptionId,
-        ]));
-
-        $ipv4 = !empty($dump->ipv4) ? [$dump->ipv4] : [];
-        $ipv6 = !empty($dump->ipv6) ? [$dump->ipv6] : [];
-        $nodeInfo = new NodeInfo(null, $ipv4, $ipv6);
-        $nodeInfo->setPassword($dump->password);
-        return $nodeInfo;
     }
 
     /**
