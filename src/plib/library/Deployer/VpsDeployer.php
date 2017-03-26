@@ -11,6 +11,8 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
 {
     const POLLING_INTERVAL = 20;
     const TIMEOPUT = 600;
+
+    private $_password;
     /**
      * Returns deployed VPS info
      *
@@ -18,8 +20,19 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
      * @return NodeInfo
      * @throws \pm_Exception
      */
-    public function deployNode($subscriptionId)
+    public function deployNode($subscriptionId, $password)
     {
+        $this->_password = $password;
+        $dumpId = \pm_Settings::get("subscription-{$subscriptionId}");
+        if ($dumpId) {
+            $info = json_decode(\pm_Settings::get("dump-{$dumpId}-info"), true);
+            $ipv4 = !empty($info['ipv4']) ? [$info['ipv4']] : [];
+            $ipv6 = !empty($info['ipv6']) ? [$info['ipv6']] : [];
+
+            $nodeInfo = new NodeInfo(null, $ipv4, $ipv6);
+            $nodeInfo->setPassword($info['password']);
+            return $nodeInfo;
+        }
         $providers = ProviderFactory::getProviders();
         $provider = reset($providers);
         if (is_null($provider)) {
@@ -47,7 +60,14 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
 
         $provider->prepareDump($dumpId, $additionalInfo);
         $dump = $provider->getDumpInfo($dumpId);
-        \pm_Settings::set('dump-' . $dump->ipv4, $dumpId);
+        \pm_Settings::set("dump-{$dump->ipv4}", $dumpId);
+        \pm_Settings::set("subscription-{$subscriptionId}", $dumpId);
+        \pm_Settings::set("dump-{$dumpId}-info", json_encode([
+            'ipv4' => $dump->ipv4,
+            'ipv6' => $dump->ipv6,
+            'password' => $dump->password,
+            'subscription' => $subscriptionId,
+        ]));
 
         $ipv4 = !empty($dump->ipv4) ? [$dump->ipv4] : [];
         $ipv6 = !empty($dump->ipv6) ? [$dump->ipv6] : [];
@@ -61,13 +81,16 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
      */
     public function destroyNode($ipAddress)
     {
-        $dumpId = \pm_Settings::get('dump-' . $ipAddress);
+        $dumpId = \pm_Settings::get("dump-{$ipAddress}");
 
         // TODO: find provider
         $providers = ProviderFactory::getProviders();
         $provider = reset($providers);
         $provider->destroyDump($dumpId);
-        \pm_Settings::set('dump-' . $ipAddress, null);
+        \pm_Settings::set("dump-{$ipAddress}", null);
+        $info = json_decode(\pm_Settings::get("dump-{$dumpId}-info"), true);
+        \pm_Settings::set("dump-{$dumpId}-info", null);
+        \pm_Settings::set("subscription-{$info['subscription']}", null);
     }
 
     private function _getAdminInfo($subscriptionId)
@@ -89,6 +112,7 @@ class VpsDeployer implements \Modules_PleskMultiServer_Deployer\DeployerInterfac
             'state' => $client->getProperty('state'),
             'zip' => $client->getProperty('pcode'),
             'country'=> $client->getProperty('country'),
+            'password' => $this->_password,
         ];
     }
 }
